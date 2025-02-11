@@ -1,0 +1,105 @@
+---
+# gather facts when calling non-vm3 tasks with CNAMES
+  - hosts: all
+    gather_facts: true
+    tags: [always]
+
+  - name: Initial setup
+    hosts: all
+    roles:
+      - init
+    tags:
+      - init
+
+  - name: DNS server
+    hosts: dns_servers
+    roles:
+      - bind
+    tags:
+      - dns  
+
+  - name: Resolver
+    hosts: all
+    roles:
+      - resolver
+    tags:
+      - resolver
+
+  - name: Prometheus
+    hosts: prometheus
+    roles:
+      - prometheus
+    tags:
+      - prometheus  
+
+  - name: Docker
+    hosts: docker
+    roles:
+      - docker
+    tags:
+      - docker
+
+  - name: Keepalived
+    hosts: keepalived
+    roles:
+      - keepalived
+    tags:
+      - keepalived
+  
+  - name: Haproxy
+    hosts: haproxy
+    roles:
+      - haproxy
+    tags:
+      - haproxy
+
+
+  - name: Grafana
+    hosts: grafana
+    roles:
+      - grafana
+    tags:
+      - grafana
+
+  - name: Database server
+    hosts: db_servers
+    roles:
+      - mysql
+    tags:
+      - mysql  
+
+  - name: InfluxDB
+    hosts: influxdb
+    roles:
+      - influxdb
+    tags:
+      - influx
+  
+ 
+  - name: agama
+    hosts: agama
+    roles:
+      - agama
+    tags:
+      - agama
+
+  - name: agama-client
+    hosts: agama-client
+    roles:
+      - agama_client
+    tags:
+      - agama_client
+
+  # - name: Uwsgi
+  #   hosts: web_servers
+  #   roles:
+  #     - uwsgi
+  #   tags:
+  #     - uwsgi
+
+  - name: Web servers
+    hosts: web_servers
+    roles:
+      - nginx
+    tags:
+      - nginx

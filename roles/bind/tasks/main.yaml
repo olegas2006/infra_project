@@ -1,0 +1,97 @@
+- name: Install Bind9
+  ansible.builtin.apt:
+    name: 
+      - bind9
+      - python3-dnspython
+    state: present
+    
+- name: Make sure bind9 is running
+  ansible.builtin.service:
+    name: bind9
+    state: started
+    enabled: true
+
+- name: Configure DNS forwarders 
+  template:
+    dest: /etc/bind/named.conf.{{ item }}
+    src: bind.{{ item }}.j2
+  loop:
+   - options
+   - local 
+  no_log: true
+  notify: Restart bind9
+
+- name: Configure DNS master zone
+  template:
+    dest: /var/cache/bind/db.infroha.ro
+    src: db.infroha.ro.j2
+    force: no
+  notify: rndc reload bind9
+  when: inventory_hostname in groups['dns_primary']
+
+- name: Copy reverse zone 
+  template:
+    src: db.reverse.infroha.ro.j2
+    dest: /var/cache/bind/db.rev.{{ startup_name }}
+    force: no
+  notify: Restart bind9
+  when: inventory_hostname in groups['dns_primary']
+
+- meta: flush_handlers
+
+- name: Download Bind9 exporter
+  ansible.builtin.get_url:
+    url: "https://github.com/prometheus-community/bind_exporter/releases/download/v0.6.1/bind_exporter-0.6.1.linux-amd64.tar.gz"
+    dest: /opt/bind_exporter-0.6.1.linux-amd64.tar.gz
+    mode: '0755'
+
+- name: Extract Bind9 exporter
+  ansible.builtin.unarchive:
+    src: /opt/bind_exporter-0.6.1.linux-amd64.tar.gz
+    dest: /opt/
+    remote_src: yes
+    creates: /opt/bind_exporter-0.6.1.linux-amd64/bind_exporter
+
+- name: Create symlink for bind exporter executable
+  ansible.builtin.file:
+    src: /opt/bind_exporter-0.6.1.linux-amd64/bind_exporter
+    dest: /usr/local/bin/prometheus-bind-exporter
+    state: link
+
+- name: Create systemd service file for Bind9 exporter
+  ansible.builtin.template:
+    src: templates/bind_exporter.service.j2
+    dest: /etc/systemd/system/bind_exporter.service
+    mode: '0644'
+  notify: Reload systemd daemon
+
+- name: Enable and start Bind9 exporter service
+  ansible.builtin.systemd:
+    name: bind_exporter
+    enabled: true
+    state: started
+
+- name: Set A record for backup
+  community.general.nsupdate:
+    key_name: "nsupdatekey"
+    key_algorithm: "hmac-sha256"
+    key_secret: "{{ nsupdate_key }}"
+    server: "{{hostvars[groups['dns_primary'][0]]['ansible_default_ipv4']['address']}}"
+    zone: "{{ startup_name }}."
+    record: "backup"
+    value: "{{ backup_server }}"
+  no_log: true
+  when: inventory_hostname in groups['dns_primary']
+
+- name: Set Bind9 CNAMES
+  community.general.nsupdate:
+    key_algorithm: "hmac-sha256"
+    key_name: "nsupdatekey"
+    key_secret: "{{ nsupdate_key }}"
+    record: "ns{{inventory_hostname | replace('olegas2006','')}}"
+    server: "{{hostvars[groups['dns_primary'][0]]['ansible_default_ipv4']['address']}}"
+    state: present
+    type: CNAME
+    zone: "{{ startup_name }}"
+    value: "{{ inventory_hostname }}"
+  no_log: true

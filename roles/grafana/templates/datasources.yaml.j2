@@ -1,0 +1,26 @@
+apiVersion: 1
+datasources:
+  - name: Prometheus
+    type: prometheus
+    access: proxy
+    orgId: 1
+    uid: be2d06i8d9reof
+    url: http://prometheus:9090/prometheus
+    editable: false
+
+  - name: Influxdb
+    type: influxdb
+    access: proxy
+    uid: ae3um2zfxi9z4e
+    url: http://influxdb:8086
+    database: agama
+    user: agama-client
+    editable: false
+  
+  - name: Influxdb:telegraf
+    type: influxdb
+    access: proxy
+    uid: ce3uxtutrti4gd
+    url: http://influxdb:8086
+    database: telegraf
+    editable: false

@@ -1,0 +1,5 @@
+# add +2 hours for EET time
+00 19 * * 1-7 backup rm -rf /home/backup/influxdb/*; influxd backup -portable -database telegraf /home/backup/influxdb
+05 19 * * 0 backup duplicity --no-encryption full /home/backup/influxdb/ rsync://olegas2006@backup.infroha.ro/influxdb
+10 19 * * 1-6 backup duplicity --no-encryption incremental /home/backup/influxdb/ rsync://olegas2006@backup.infroha.ro/influxdb
+

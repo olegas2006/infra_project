@@ -1,0 +1,103 @@
+- name: Add Influx GPG key
+  apt_key:
+    url: https://repos.influxdata.com/influxdata-archive_compat.key
+    state: present
+
+- name: Add Influx APT repository
+  apt_repository:
+    repo: 'deb https://repos.influxdata.com/debian stable main'
+    state: present
+    update_cache: yes
+
+- name: Download InfluxDB  package
+  get_url:
+    url: https://dl.influxdata.com/influxdb/releases/influxdb_1.8.10_amd64.deb
+    dest: /usr/local/bin/influxdb_1.8.10_amd64.deb
+
+- name: Install InfluxDB
+  apt:
+    deb: /usr/local/bin/influxdb_1.8.10_amd64.deb
+    update_cache: yes
+
+- name: Copy InfluxDB configurarion file
+  template:
+    src: influxdb.conf.j2
+    dest: /etc/influxdb/influxdb.conf
+  notify: Restart influxdb
+
+- name: Start InfluxDB  service
+  systemd:
+    name: influxdb
+    state: started
+    enabled: yes
+
+- name: Install Telegraf
+  apt:
+    name: telegraf
+
+- name: Create Telegraf configuration file
+  template:
+    src: telegraf.conf.j2
+    dest: /etc/telegraf/telegraf.conf
+  notify: Restart telegraf
+
+- name: Start Telegraf service
+  systemd:
+    name: telegraf
+    state: started
+    enabled: yes
+
+- name: Install InfluxDB stat exporter from git
+  ansible.builtin.get_url:
+    url: https://github.com/carlpett/influxdb_stats_exporter/releases/download/v0.1.1/influx_stats_exporter_linux_amd64
+    dest: /usr/local/bin/
+    mode: '0500'
+    owner: prometheus
+  notify: Reload systemd
+
+- name: Copy InfluxDB Stats Exporter service 
+  template:
+    src: prometheus-influxdb-stats-exporter.service.j2
+    dest: /etc/systemd/system/prometheus-influxdb-stats-exporter.service
+  notify: Reload systemd
+
+- name: Start InfluxDB Stats Exporter service
+  systemd:
+    name: prometheus-influxdb-stats-exporter
+    state: started
+    enabled: yes
+
+- name: Ensure that influxdb directory exists 
+  file:
+    path: /home/backup/influxdb
+    state: directory 
+    owner: backup 
+    group: backup 
+    mode: 0700
+
+- name: Influx backup cron
+  template:
+    src: influxdb_backup_cron.j2
+    dest: /etc/cron.d/influxdb-backup
+    owner: root
+    group: root
+  notify: Reload cron
+
+- name: Ensure cron is running
+  ansible.builtin.service:
+    name: cron
+    state: started
+    enabled: true
+
+- name: Set CNAME record for influx
+  community.general.nsupdate:
+    key_name: "nsupdatekey"
+    key_algorithm: "hmac-sha256"
+    key_secret: "{{ nsupdate_key }}"
+    server: "{{hostvars[groups['dns_primary'][0]]['ansible_default_ipv4']['address']}}"
+    state: present
+    zone: "{{ startup_name }}"
+    record: "influxdb"
+    value: "{{ inventory_hostname }}"
+    type: CNAME
+  no_log: true

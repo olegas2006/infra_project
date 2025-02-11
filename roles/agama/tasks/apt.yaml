@@ -1,0 +1,28 @@
+- name: Create user agama
+  ansible.builtin.user:
+      name: agama
+  when: inventory_hostname == 'olegas2006-1'
+
+- name: Check directory agama
+  ansible.builtin.file:
+    path: /opt/agama
+    state: directory
+    owner: agama
+    group: agama
+    mode: '0755'
+  when: inventory_hostname == 'olegas2006-1'
+
+- name: Install packages
+  ansible.builtin.apt:
+    name: 
+     - python3-flask-sqlalchemy
+     - python3-pymysql
+    state: present
+  when: inventory_hostname == 'olegas2006-1'
+
+- name: Download agama
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/hudolejev/agama/master/agama.py
+    dest: /opt/agama
+    mode: '0755'
+  when: inventory_hostname == 'olegas2006-1'

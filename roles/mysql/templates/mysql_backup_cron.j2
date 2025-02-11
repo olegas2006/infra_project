@@ -1,0 +1,6 @@
+# add +2 hours for EET time
+{% if inventory_hostname == mysql_backup_host %}
+01 19 * * 1-7  backup mysqldump agama > /home/backup/mysql/agama.sql
+04 19 * * 0  backup  duplicity --no-encryption full /home/backup/mysql/ rsync://olegas2006@backup.infroha.ro/mysql --allow-source-mismatch
+40 18 * * 1-6  backup  duplicity --no-encryption incremental /home/backup/mysql/ rsync://olegas2006@backup.infroha.ro/mysql --allow-source-mismatch
+{% endif %}

@@ -1,0 +1,37 @@
+- name: Create /opt/agama directory
+  file:
+    path: /opt/agama
+    state: directory
+
+- name: Install AGAMA dependencies
+  apt:
+    name:
+      - python3-flask-sqlalchemy
+      - python3-pymysql
+
+- name: Install AGAMA packs
+  get_url:
+    url: https://raw.githubusercontent.com/hudolejev/agama/master/{{ item }}
+    dest: /opt/agama/{{ item }}
+  loop:
+    - agama.py
+    - Dockerfile
+
+- name: Build Docker image
+  community.docker.docker_image:
+    name: agama
+    source: build
+    build:
+      path: /opt/agama
+
+- name: Agama container
+  community.docker.docker_container:
+    name: "agama{{ item + 1 }}"
+    image: agama
+    published_ports: "{{ agama_port + item}}:8000"
+    env:
+      AGAMA_DATABASE_URI=mysql+pymysql://{{ mysql_user }}:{{ mysql_password }}@{{ mysql_host }}/{{ mysql_database }}
+    restart_policy: always
+  loop: "{{ range(number_of_agamas_on_vm) }}"
+  no_log: true
+

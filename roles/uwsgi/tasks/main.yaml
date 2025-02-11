@@ -1,0 +1,32 @@
+- name: Install uWSGI and required packages
+  apt:
+    name:
+      - uwsgi
+      - uwsgi-plugin-python3
+    state: present
+    update_cache: yes
+  when: inventory_hostname == 'olegas2006-1'
+
+- name: Ensure apps-enabled directory exists
+  file:
+    path: /etc/uwsgi/apps-enabled
+    state: directory
+    mode: '0755'
+  when: inventory_hostname == 'olegas2006-1'
+
+- name: Create uWSGI config for AGAMA application
+  ansible.builtin.template:
+    src: agama.ini.j2
+    dest: /etc/uwsgi/apps-enabled/agama.ini
+  notify: 
+    -   Restart uwsgi
+  when: inventory_hostname == 'olegas2006-1'
+  no_log: true
+
+
+- name: uWSGI service running
+  ansible.builtin.service:
+    name: uwsgi
+    state: started
+    enabled: true
+  when: inventory_hostname == 'olegas2006-1'

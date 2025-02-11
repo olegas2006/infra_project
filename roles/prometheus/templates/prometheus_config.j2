@@ -1,0 +1,2 @@
+ARGS="--config.file=/etc/prometheus/prometheus.yml \
+      --web.external-url=http://{{ groups['prometheus'][0] }}:{{ hostvars[groups['prometheus'][0]]['ansible_port'] | int + 58 }}/prometheus"

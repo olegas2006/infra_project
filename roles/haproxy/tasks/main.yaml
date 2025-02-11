@@ -1,0 +1,54 @@
+- name: Set HaProxy CNAMES
+  community.general.nsupdate:
+    key_algorithm: "hmac-sha256"
+    key_name: "nsupdatekey"
+    key_secret: "{{ nsupdate_key }}"
+    record: "lb{{inventory_hostname | replace('olegas2006','')}}"
+    server: "{{hostvars[groups['dns_primary'][0]]['ansible_default_ipv4']['address']}}"
+    state: present
+    type: CNAME
+    zone: "{{ startup_name }}"
+    value: "{{ inventory_hostname }}"
+  no_log: true
+
+
+- name: Install haproxy
+  ansible.builtin.apt:
+    name: haproxy
+    state: present
+
+- name: Move haproxy template
+  ansible.builtin.template:
+    src: haproxy.cfg.j2
+    dest: /etc/haproxy/haproxy.cfg
+    mode: '0644'
+  notify: 
+    - Restart haproxy
+    - Restart prometheus-haproxy-exporter
+
+- name: Install prometheus haproxy exporter
+  ansible.builtin.apt:
+    name: prometheus-haproxy-exporter
+    state: present
+
+- name: Move prometheus ARGS 
+  template:
+    src: prometheus-haproxy-exporter.j2
+    dest: /etc/default/prometheus-haproxy-exporter
+  notify: 
+    - Restart prometheus-haproxy-exporter
+    - Restart haproxy
+
+- name: Ensure haproxy is started
+  ansible.builtin.systemd:
+    name: haproxy
+    state: started
+    enabled: true
+
+- name: Ensure haproxy-exporter is started
+  ansible.builtin.systemd:
+    name: prometheus-haproxy-exporter
+    state: started
+    enabled: true
+
+

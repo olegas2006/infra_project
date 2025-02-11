@@ -1,0 +1,51 @@
+mysql_host: olegas2006-1
+mysql_database: agama
+mysql_user: agama
+mysql_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+         
+dnsforwarders: 
+  - 1.1.1.1
+  - 8.8.8.8
+  - 9.9.9.9
+corpnets:
+  - 192.168.42.0/23
+  - 127.0.0.0/8
+  - 172.17.0.0/16
+startup_name: infroha.ro
+
+exporter_user: mysql_exporter
+exporter_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+    
+grafana_user: olegas2006
+
+grafana_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+        
+backup_server: 192.168.42.132
+backup_pub_key: ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIEu6pFFWyuRrl4WGFPQGElYN9txwTGm2wSntcpVAaN90
+mysql_backup_user_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+       
+
+mysql_replication_user: replication
+mysql_replication_password: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+   
+node_id: "{{ (ansible_port / 100) | int }}"
+mysql_backup_host: "{{ groups['db_servers'] | reject('eq', mysql_host) | first | default(mysql_host) }}"
+
+grafana_port: 3001
+agama_port: 8001
+number_of_agamas_on_vm: 2
+authentication_pass: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+       
+dns_key: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+        
+
+nsupdate_key: !vault |
+          $ANSIBLE_VAULT;1.1;AES256
+  

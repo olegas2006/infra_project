@@ -1,0 +1,35 @@
+acl corpnets {
+        {% for corpnet in corpnets %}
+        {{ corpnet }};
+        {% endfor %}
+            
+        };
+
+options {
+        directory "/var/cache/bind";
+
+        
+        allow-query { corpnets; };
+        forwarders {
+        {% for forwarder in dnsforwarders %}
+        {{ forwarder }};
+        {% endfor %}
+    };
+
+      
+        dnssec-validation no;
+};
+
+statistics-channels {
+    inet 127.0.0.1 port 8053 allow { localhost; };
+};
+
+key "transferkey" {
+	algorithm hmac-sha256;
+	secret "{{ dns_key }}";
+};
+
+key "nsupdatekey" {
+	algorithm hmac-sha256;
+	secret "{{ nsupdate_key }}";
+};

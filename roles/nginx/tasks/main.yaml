@@ -1,0 +1,53 @@
+- name: Install nginx
+  ansible.builtin.apt:
+    name: nginx
+    state: present
+  notify: 
+   - Restart nginx
+
+- name: Nginx configured
+  ansible.builtin.template:
+    src: default.j2
+    dest: /etc/nginx/sites-enabled/default
+    mode: '0644'
+  notify: 
+    - Restart nginx
+
+- name: Ensure Nginx is started and enabled
+  service:
+    name: nginx
+    state: started
+    enabled: true
+  notify: 
+   - Restart nginx
+
+- meta: flush_handlers
+
+- name: Install nginx exporter
+  ansible.builtin.apt:
+    name: prometheus-nginx-exporter
+    state: present
+  notify: 
+   - Restart nginx
+   - Restart nginx exporter
+
+- meta: flush_handlers
+
+- name: Start nginx exporter
+  service:
+    name: prometheus-nginx-exporter
+    state: started
+    enabled: true
+
+- name: Set Agama vms CNAMES
+  community.general.nsupdate:
+    key_algorithm: "hmac-sha256"
+    key_name: "nsupdatekey"
+    key_secret: "{{ nsupdate_key }}"
+    record: "www{{inventory_hostname | replace('olegas2006','')}}"
+    server: "{{hostvars[groups['dns_primary'][0]]['ansible_default_ipv4']['address']}}"
+    state: present
+    type: CNAME
+    zone: "{{ startup_name }}"
+    value: "{{ inventory_hostname }}"
+  no_log: true

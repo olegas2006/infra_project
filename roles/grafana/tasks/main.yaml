@@ -1,0 +1,60 @@
+- name: Create Grafana directories
+  file:
+    name: /opt/grafana/provisioning/{{ item }}
+    state: directory
+  loop:
+    - dashboards
+    - datasources
+
+- name: Grafana config
+  template:
+    src: grafana.ini.j2
+    dest: /opt/grafana/grafana.ini
+  no_log: true
+  notify: Restart grafana container
+
+- name: Datasources config
+  template:
+    src: datasources.yaml.j2
+    dest: /opt/grafana/provisioning/datasources/default.yaml
+  notify: Restart grafana container
+
+- name: Dashboards config
+  template:
+    src: dashboards.yaml.j2
+    dest: /opt/grafana/provisioning/dashboards/default.yaml
+  notify: Restart grafana container
+
+- name: Add grafana dashboards
+  copy:
+    src: "{{ item }}"
+    dest: /opt/grafana/provisioning/dashboards/{{ item }}
+  no_log: true
+  loop:
+    - backups.json
+    - main.json
+    - syslog.json
+    - mysql.json
+  notify: Restart grafana container
+
+- name: Grafana container
+  community.docker.docker_container:
+    name: grafana
+    image: grafana/grafana
+    published_ports: "{{ grafana_port }}:3000"
+    volumes: /opt/grafana:/etc/grafana
+    restart_policy: always
+
+- name: Set CNAME record for grafana
+  community.general.nsupdate:
+    key_name: "nsupdatekey"
+    key_algorithm: "hmac-sha256"
+    key_secret: "{{ nsupdate_key }}"
+    server: "{{hostvars[groups['dns_primary'][0]]['ansible_default_ipv4']['address']}}"
+    state: present
+    zone: "{{ startup_name }}"
+    record: "grafana"
+    value: "{{ inventory_hostname }}"
+    type: CNAME
+  no_log: true
+

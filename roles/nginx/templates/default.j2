@@ -1,0 +1,35 @@
+server {
+        listen 80 default_server;
+        server_name _;
+ 
+
+        location / {
+            proxy_pass http://localhost:{{ agama_port }};
+            proxy_set_header Host $http_host;
+	}
+
+
+
+        {% if inventory_hostname in groups['prometheus'] %}
+
+        location /prometheus {
+            proxy_pass http://localhost:9090;
+        }
+
+        {% endif %}
+
+        {% if inventory_hostname in groups['grafana'] %}
+
+        location /grafana {
+            proxy_pass http://localhost:{{ grafana_port }};
+            proxy_set_header Host $http_host;
+        }
+        {% endif %}
+}
+
+server {
+        listen 8080 default_server;
+        location = /stub_status {
+            stub_status;
+        }
+}

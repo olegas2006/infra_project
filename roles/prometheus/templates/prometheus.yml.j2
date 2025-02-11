@@ -1,0 +1,77 @@
+
+
+global:
+  scrape_interval:     15s # Set the scrape interval to every 15 seconds. Default is every 1 minute.
+  evaluation_interval: 15s # Evaluate rules every 15 seconds. The default is every 1 minute.
+
+
+
+
+scrape_configs:
+  # The job name is added as a label `job=<job_name>` to any timeseries scraped from this config.
+  - job_name: 'prometheus'
+
+    # Override the global default and scrape targets from this job every 5 seconds.
+    scrape_interval: 5s
+    scrape_timeout: 5s
+
+    metrics_path: '/prometheus/metrics'
+    # scheme defaults to 'http'.
+
+    static_configs:
+      - targets: ['prometheus:9090']
+
+  - job_name: linux                        
+    static_configs:
+      - targets: 
+        {% for host in groups['all'] -%}
+        - www-{{ host | replace ('olegas2006-','') }}:9100
+        {% endfor %}
+
+  - job_name: bind9
+    scrape_interval: 15s  
+    static_configs:
+      - targets:
+        {% for host in groups['dns_servers'] -%}
+        - ns-{{ host | replace ('olegas2006-','') }}:9119
+        {% endfor %}
+  
+  - job_name: mysql
+    scrape_interval: 15s 
+    static_configs:
+      - targets:
+        {% for host in groups['db_servers'] -%}
+        - db-{{ host | replace ('olegas2006-','') }}:9104
+        {% endfor %}
+
+  - job_name: nginx
+    scrape_interval: 15s 
+    static_configs:
+      - targets:
+        {% for host in groups['all'] -%}
+        - www-{{ host | replace ('olegas2006-','') }}:9113
+        {% endfor %}
+  
+  - job_name: influxdb exporter
+    static_configs:
+      - targets:
+        - influxdb.infroha.ro:9424
+  
+  - job_name: backup metrics
+    static_configs:
+      - targets:
+        - backup.{{ startup_name }}:9111
+  
+  - job_name: haproxy metrics
+    static_configs:
+      - targets:
+        {% for host in groups['haproxy'] -%}
+        - lb-{{ host | replace ('olegas2006-','') }}:9101
+        {% endfor %}
+
+  - job_name: keepalived metrics
+    static_configs:
+      - targets:
+        {% for host in groups['keepalived'] -%}
+        - lb-{{ host | replace ('olegas2006-','') }}:9165
+        {% endfor %}
